@@ -60,7 +60,7 @@ jobs:
     - name: CDK Bootstrap (if needed)
       run: |
         # Bootstrap CDK in target account (idempotent)
-        cdk bootstrap aws://${{ secrets.CDK_DEFAULT_ACCOUNT }}/${{ env.AWS_REGION }}
+        cdk bootstrap aws://${{ secrets.CDK_DEFAULT_ACCOUNT }}/${{ vars.AWS_REGION }}
       env:
         CDK_DEFAULT_ACCOUNT: ${{ secrets.CDK_DEFAULT_ACCOUNT }}
 
