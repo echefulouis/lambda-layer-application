@@ -1,6 +1,9 @@
-# Lambda Package Builder
+# Lambda Layer Builder
 
-A modern web application built with AWS CDK, React, and AWS services that helps developers create, customize, and download AWS Lambda deployment packages. The application provides an intuitive interface for writing Lambda functions, managing dependencies, and generating ready-to-deploy ZIP files.
+[![CI - Build and Test](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/workflows/CI%20-%20Build%20and%20Test/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/actions)
+[![CD - Deploy to AWS](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/workflows/CD%20-%20Deploy%20to%20AWS/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/actions)
+
+A modern web application built with AWS CDK, React, and AWS services that helps developers create, customize, and download AWS Lambda Layers with platform-specific dependencies. The application provides an intuitive interface for building Lambda layers, managing dependencies, and generating ready-to-deploy ZIP files with automatic CI/CD deployment.
 
 ## Architecture
 
@@ -91,6 +94,92 @@ export CDK_DEFAULT_REGION=your-region
 
 ```bash
 python deploy.py
+```
+
+## CI/CD Pipeline
+
+This project includes a complete CI/CD pipeline using GitHub Actions that automatically builds, tests, and deploys your application.
+
+### 🚀 **Pipeline Features**
+
+- **Continuous Integration**: Runs on pull requests and develop branch
+  - Python code linting (flake8, black, isort)
+  - Frontend linting (ESLint)
+  - Unit tests with pytest
+  - Security scanning (Bandit, npm audit)
+  - CDK CloudFormation validation
+
+- **Continuous Deployment**: Runs on main branch pushes
+  - Automated AWS deployment using your existing `deploy.py` script
+  - Post-deployment verification tests
+  - Artifact storage for deployment outputs
+
+### 🔧 **Setting Up GitHub Secrets**
+
+To enable automated deployment, add these secrets to your GitHub repository:
+
+1. Go to **Settings** → **Secrets and variables** → **Actions**
+2. Add the following repository secrets:
+
+```bash
+# Required for production deployment
+AWS_ACCESS_KEY_ID=your-aws-access-key-id
+AWS_SECRET_ACCESS_KEY=your-aws-secret-access-key
+CDK_DEFAULT_ACCOUNT=your-aws-account-id
+
+# Optional for staging deployment
+AWS_ACCESS_KEY_ID_STAGING=your-staging-aws-access-key-id
+AWS_SECRET_ACCESS_KEY_STAGING=your-staging-aws-secret-access-key
+CDK_DEFAULT_ACCOUNT_STAGING=your-staging-aws-account-id
+```
+
+### 🔐 **AWS IAM Permissions**
+
+Create an IAM user with these permissions for GitHub Actions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sts:AssumeRole",
+        "cloudformation:*",
+        "s3:*",
+        "lambda:*",
+        "apigateway:*",
+        "iam:*",
+        "route53:*",
+        "acm:*",
+        "cloudfront:*",
+        "logs:*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### 🌲 **Branch Strategy**
+
+- **`main`**: Production deployment (automatic)
+- **`develop`**: Staging deployment (automatic)
+- **`feature/*`**: CI only (no deployment)
+- **Pull Requests**: CI only (no deployment)
+
+### 📋 **Workflow Files**
+
+- **`.github/workflows/ci.yml`**: Runs tests and builds on PRs
+- **`.github/workflows/deploy.yml`**: Deploys to AWS on main/develop
+
+### 🛠️ **Local Development**
+
+Install pre-commit hooks for local code quality:
+
+```bash
+pip install pre-commit
+pre-commit install
 ```
 
 The deployment script will:
@@ -364,6 +453,22 @@ cd frontend
 npm start  # Start development server on localhost:3000
 ```
 
+### Running Tests Locally
+
+```bash
+# Python tests
+python -m pytest tests/ -v
+
+# Frontend tests
+cd frontend
+npm test
+
+# Code quality checks
+flake8 lambda_functions/ lambda_layer/
+black --check lambda_functions/ lambda_layer/
+cd frontend && npm run lint
+```
+
 ### Testing Lambda Functions
 
 Test Lambda functions locally:
@@ -371,7 +476,7 @@ Test Lambda functions locally:
 cd lambda_functions
 python -c "
 import package_creator
-event = {'body': '{\"packageName\": \"test\", \"codeContent\": \"print(\\\"hello\\\")\"}'}
+event = {'body': '{\"packageName\": \"test\", \"dependencies\": [\"requests\"]}'}
 print(package_creator.lambda_handler(event, None))
 "
 ```

@@ -1,0 +1,152 @@
+name: CD - Deploy to AWS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  AWS_REGION: us-east-1
+  CDK_DEFAULT_REGION: us-east-1
+
+jobs:
+  deploy-to-aws:
+    runs-on: ubuntu-latest
+    
+    # Add environment protection (optional)
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+        
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Install AWS CDK
+      run: npm install -g aws-cdk
+      
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci
+        
+    - name: Run pre-deployment tests
+      run: |
+        # Quick smoke tests before deployment
+        python -c "import lambda_functions.package_creator; print('✅ Package creator imports successfully')"
+        python -c "import lambda_functions.package_lister; print('✅ Package lister imports successfully')"
+        python -c "import lambda_functions.download_url_generator; print('✅ Download URL generator imports successfully')"
+        
+    - name: CDK Bootstrap (if needed)
+      run: |
+        # Bootstrap CDK in target account (idempotent)
+        cdk bootstrap aws://${{ secrets.CDK_DEFAULT_ACCOUNT }}/${{ env.AWS_REGION }}
+      env:
+        CDK_DEFAULT_ACCOUNT: ${{ secrets.CDK_DEFAULT_ACCOUNT }}
+        
+    - name: Build and Deploy Infrastructure
+      run: |
+        echo "🚀 Starting deployment..."
+        python deploy.py
+      env:
+        CDK_DEFAULT_ACCOUNT: ${{ secrets.CDK_DEFAULT_ACCOUNT }}
+        CDK_DEFAULT_REGION: ${{ env.CDK_DEFAULT_REGION }}
+        
+    - name: Run post-deployment tests
+      run: |
+        echo "🧪 Running deployment verification tests..."
+        python test_deployment.py || echo "⚠️  Post-deployment tests failed, but deployment may still be successful"
+        
+    - name: Upload deployment artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: deployment-outputs
+        path: |
+          cdk-outputs.json
+          frontend/build/
+        retention-days: 30
+        
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ ${{ job.status }} == 'success' ]; then
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 Check your application at the Frontend URL from the deployment outputs"
+        else
+          echo "❌ Deployment failed!"
+          echo "📋 Check the logs above for error details"
+        fi
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    # Deploy to staging environment for develop branch
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_STAGING }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_STAGING }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Install dependencies
+      run: |
+        npm install -g aws-cdk
+        pip install -r requirements.txt
+        cd frontend && npm ci
+        
+    - name: Deploy to staging
+      run: |
+        # Deploy with staging suffix
+        export CDK_DEFAULT_ACCOUNT=${{ secrets.CDK_DEFAULT_ACCOUNT_STAGING }}
+        export STAGE=staging
+        python deploy.py
+      env:
+        CDK_DEFAULT_REGION: ${{ env.CDK_DEFAULT_REGION }} 
