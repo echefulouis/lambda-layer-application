@@ -64,19 +64,12 @@ jobs:
     - name: Install frontend dependencies
       run: |
         cd frontend
-        # Build the React app with ESLint warnings as warnings (not errors)
-        import os
-        original_env = os.environ.copy()
-        os.environ['GENERATE_SOURCEMAP'] = 'false'
-        os.environ['ESLINT_NO_DEV_ERRORS'] = 'true'
-        os.environ['CI'] = 'false'
+        npm install
 
-        try:
-            run_command("npm run build", cwd=frontend_dir)
-        finally:
-            # Restore original environment
-            os.environ.clear()
-            os.environ.update(original_env)
+    - name: Build frontend
+      run: |
+        cd frontend
+        GENERATE_SOURCEMAP=false ESLINT_NO_DEV_ERRORS=true CI=false npm run build
 
     - name: Run pre-deployment tests
       run: |
