@@ -8,3 +8,27 @@ __pycache__
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+
+# Sensitive CDK files
+cdk-outputs.json
+cdk.context.json
+
+# Frontend build artifacts and dependencies
+frontend/build/
+frontend/node_modules/
+frontend/package-lock.json
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
