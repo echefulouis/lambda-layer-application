@@ -57,6 +57,13 @@ jobs:
         export CDK_DEFAULT_REGION=us-east-1
         npx cdk synth
 
+    - name: CDK Bootstrap (if needed)
+      run: |
+        # Bootstrap CDK in target account (idempotent)
+        cdk bootstrap aws://${{ secrets.CDK_DEFAULT_ACCOUNT }}/${{ env.AWS_REGION }}
+      env:
+        CDK_DEFAULT_ACCOUNT: ${{ secrets.CDK_DEFAULT_ACCOUNT }}
+
   test-frontend:
     runs-on: ubuntu-latest
 
@@ -67,7 +74,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
 
     - name: Cache node modules
       uses: actions/cache@v4
