@@ -223,6 +223,8 @@ cdk deploy --outputs-file cdk-outputs.json
 aws s3 sync frontend/build/ s3://BUCKET_NAME --delete
 ```
 
+**Note**: This project uses `npm install` instead of `npm ci` since we don't commit `package-lock.json` files. The CI/CD pipeline will automatically generate lock files as needed.
+
 ## Usage Guide
 
 ### Creating Lambda Layers
@@ -232,7 +234,7 @@ aws s3 sync frontend/build/ s3://BUCKET_NAME --delete
    - **Python Version**: Select target Python runtime (3.9, 3.10, 3.11, 3.12)
    - **Architecture**: Choose x86_64 or arm64 based on your Lambda functions
 
-2. **Add Dependencies**: 
+2. **Add Dependencies**:
    - Enter Python package names (e.g., `requests`, `fastapi`, `pandas`)
    - Use the quick-add buttons for common packages
    - Choose whether to upgrade packages to latest versions
@@ -392,7 +394,7 @@ allow_headers=["Content-Type", "X-Amz-Date", "Authorization", "X-Api-Key"]
    ```bash
    # Bootstrap CDK if first time
    cdk bootstrap
-   
+
    # If using custom domain, ensure hosted zone exists
    aws route53 list-hosted-zones
    ```
@@ -401,7 +403,7 @@ allow_headers=["Content-Type", "X-Amz-Date", "Authorization", "X-Api-Key"]
    ```bash
    # Verify hosted zone exists for your domain
    aws route53 list-hosted-zones --query "HostedZones[?Name=='yourdomain.com.']"
-   
+
    # Check certificate validation status
    aws acm list-certificates --region us-east-1
    ```
@@ -450,7 +452,8 @@ aws s3 ls s3://your-bucket-name  # List bucket contents
 For frontend development:
 ```bash
 cd frontend
-npm start  # Start development server on localhost:3000
+npm install  # Install dependencies first time
+npm start    # Start development server on localhost:3000
 ```
 
 ### Running Tests Locally

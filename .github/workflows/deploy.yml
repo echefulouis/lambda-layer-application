@@ -64,7 +64,7 @@ jobs:
     - name: Install frontend dependencies
       run: |
         cd frontend
-        npm ci
+        npm install
 
     - name: Run pre-deployment tests
       run: |
@@ -154,7 +154,7 @@ jobs:
       run: |
         npm install -g aws-cdk
         pip install -r requirements.txt
-        cd frontend && npm ci
+        cd frontend && npm install
 
     - name: Deploy to staging
       run: |
